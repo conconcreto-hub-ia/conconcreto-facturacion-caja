@@ -5,19 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Marca, Contenedor } from "./ui";
 import { accionSalir } from "@/app/acceso";
-import type { Permiso } from "@/lib/auth/permisos";
-
-// El menú vive aquí y en ningún otro sitio. Cada entrada dice qué permiso hace falta para verla.
-export const NAV: { href: string; etiqueta: string; permiso: Permiso }[] = [
-  { href: "/", etiqueta: "Inicio", permiso: "ver.inicio" },
-  { href: "/confirmaciones", etiqueta: "Confirmaciones", permiso: "ver.facturacion" },
-  { href: "/facturacion", etiqueta: "Facturación", permiso: "ver.facturacion" },
-  { href: "/caja", etiqueta: "Caja", permiso: "ver.caja" },
-  { href: "/conversar", etiqueta: "Conversar", permiso: "conversar" },
-  { href: "/junta", etiqueta: "Junta", permiso: "ver.junta" },
-  { href: "/datos", etiqueta: "Datos", permiso: "ver.facturacion" },
-  { href: "/usuarios", etiqueta: "Usuarios", permiso: "usuarios.administrar" },
-];
+import { NAV } from "./nav";
 
 export function BarraCliente({ agenteActivo = true, children, usuario, visibles }: { agenteActivo?: boolean; children?: ReactNode; usuario: { nombre: string; rol: string } | null; visibles: string[] }) {
   const ruta = usePathname();

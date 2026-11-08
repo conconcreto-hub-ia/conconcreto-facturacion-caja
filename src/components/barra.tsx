@@ -1,9 +1,10 @@
 // La barra superior con la persona conectada. Las páginas importan esta; la parte interactiva es BarraCliente.
-// El menú (NAV) vive en barra-cliente.tsx y aquí se filtra por los permisos del rol.
+// El menú (NAV) vive en nav.ts y aquí se filtra por los permisos del rol.
 import type { ReactNode } from "react";
 import { usuarioActual } from "@/lib/auth/sesion";
 import { ROL, puede } from "@/lib/auth/permisos";
-import { BarraCliente, NAV } from "./barra-cliente";
+import { BarraCliente } from "./barra-cliente";
+import { NAV } from "./nav";
 
 export async function Barra({ agenteActivo = true, children }: { agenteActivo?: boolean; children?: ReactNode }) {
   const u = await usuarioActual();
