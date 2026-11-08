@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { leerDatos } from "@/lib/datos";
 import { diferenciasMes, liquidar } from "@/lib/finanzas";
 import { fechaHora, monto, montoCorto, pct } from "@/lib/formato";
-import { diaLargo, iso, nombreMesAnio } from "@/lib/fechas";
+import { diaLargo, iso, MesAnio, nombreMesAnio } from "@/lib/fechas";
 import { ESTADO_CONFIRMACION, LINEA } from "@/lib/etiquetas";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,7 @@ export default async function Proyecto({ params }: { params: Promise<{ id: strin
               <Tarjeta className="overflow-x-auto">
                 <table className="w-full min-w-[620px] text-[14px]">
                   <thead><tr className="text-left text-[12px] text-tinta-3"><th className="px-5 py-3 font-medium">Mes</th><th className="px-3 py-3 text-right font-medium">Proyectado</th><th className="px-3 py-3 text-right font-medium">Informado</th><th className="px-3 py-3 text-right font-medium">Real (SAP)</th><th className="px-5 py-3 text-right font-medium">% de lo informado</th></tr></thead>
-                  <tbody>{filas.map((f) => <tr key={f.mes} className="border-t border-linea-2"><td className="px-5 py-2.5 capitalize">{nombreMesAnio(f.mes)}</td><td className="num px-3 py-2.5 text-right">{montoCorto(f.proyectado, p.moneda)}</td><td className="num px-3 py-2.5 text-right">{f.informado === null ? "—" : montoCorto(f.informado, p.moneda)}</td><td className="num px-3 py-2.5 text-right">{montoCorto(f.real, p.moneda)}</td><td className={`num px-5 py-2.5 text-right ${f.requiereJustificacion ? "text-rojo" : ""}`}>{pct(f.pctInformado, 1)}</td></tr>)}</tbody>
+                  <tbody>{filas.map((f) => <tr key={f.mes} className="border-t border-linea-2"><td className="px-5 py-2.5">{MesAnio(f.mes)}</td><td className="num px-3 py-2.5 text-right">{montoCorto(f.proyectado, p.moneda)}</td><td className="num px-3 py-2.5 text-right">{f.informado === null ? "—" : montoCorto(f.informado, p.moneda)}</td><td className="num px-3 py-2.5 text-right">{montoCorto(f.real, p.moneda)}</td><td className={`num px-5 py-2.5 text-right ${f.requiereJustificacion ? "text-rojo" : ""}`}>{pct(f.pctInformado, 1)}</td></tr>)}</tbody>
                 </table>
               </Tarjeta>
               {p.justificaciones.length > 0 && <p className="text-[13.5px]">Justificaciones: {p.justificaciones.map((j) => <Link key={j.id} href={`/facturacion?mes=${iso(j.mes).slice(0, 7)}`} className="text-verde-profundo hover:underline">{nombreMesAnio(iso(j.mes))} ({j.estado === "aprobada" ? "aprobada" : "por aprobar"})</Link>)}</p>}

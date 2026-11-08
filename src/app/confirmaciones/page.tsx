@@ -61,7 +61,7 @@ export default async function Confirmaciones({ searchParams }: { searchParams: P
           </Vacio>
         ) : (
           <>
-            <Tarjeta className="flex flex-wrap gap-10 p-6">
+            <Tarjeta className="grid gap-8 p-6 sm:grid-cols-2 lg:grid-cols-4">
               <Cifra valor={`${respondieron} de ${proyectos.length}`} rotulo="Ya confirmaron" nota={`${n((c) => c.estado === "ajustada")} ajustaron · ${n((c) => c.estado === "no_factura")} no facturan`} />
               <Cifra valor={esperando} rotulo="Esperando respuesta" nota={`${n((c) => c.recordatorios > 0 && (c.estado === "enviada" || c.estado === "recordada"))} ya con recordatorio`} />
               <Cifra valor={revisar} rotulo="Por revisar" nota="lo que el agente no pudo registrar solo" />

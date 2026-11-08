@@ -49,6 +49,8 @@ const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "
 
 export const nombreMes = (mes: Dia) => MESES[Number(mes.slice(5, 7)) - 1];
 export const nombreMesAnio = (mes: Dia) => `${nombreMes(mes)} de ${mes.slice(0, 4)}`;
+/** "Octubre de 2026": solo la primera letra (el capitalize de CSS pone «De» en mayúscula). */
+export const MesAnio = (mes: Dia) => { const s = nombreMesAnio(mes); return s[0].toUpperCase() + s.slice(1); };
 /** "15 de diciembre" */
 export const diaLargo = (d: Dia) => `${Number(d.slice(8, 10))} de ${nombreMes(d)}`;
 /** "15 dic" */

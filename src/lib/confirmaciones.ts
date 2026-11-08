@@ -139,11 +139,15 @@ export function decidir(l: Lectura, c: { valorPreguntado: number; fechaPreguntad
   const valorLeido = leido && (!leido.moneda || leido.moneda === c.moneda) ? leido.valor : null;
   const fecha = l.fecha_radicacion && /^\d{4}-\d{2}-\d{2}$/.test(l.fecha_radicacion) && l.fecha_radicacion >= mesDe(hoy) ? l.fecha_radicacion : null;
   if (l.tipo === "no_factura") return { estado: "no_factura" as const, valor: 0, fecha: null, motivo: null };
-  if (l.tipo === "confirma" && (valorLeido === null || valorLeido === c.valorPreguntado)) return { estado: "confirmada" as const, valor: c.valorPreguntado, fecha: fecha ?? c.fechaPreguntada, motivo: null };
   if (l.tipo === "confirma" || l.tipo === "ajusta") {
     if (l.valor_texto && valorLeido === null) return { estado: "por_revisar" as const, valor: null, fecha: null, motivo: `no se pudo leer el valor «${l.valor_texto}»` };
-    if (valorLeido === null && !fecha) return { estado: "por_revisar" as const, valor: null, fecha: null, motivo: "dice que ajusta pero no da ni valor ni fecha" };
-    return { estado: "ajustada" as const, valor: valorLeido ?? c.valorPreguntado, fecha: fecha ?? c.fechaPreguntada, motivo: null };
+    if (l.tipo === "ajusta" && valorLeido === null && !fecha) return { estado: "por_revisar" as const, valor: null, fecha: null, motivo: "dice que ajusta pero no da ni valor ni fecha" };
+    const valor = valorLeido ?? c.valorPreguntado;
+    const f = fecha ?? c.fechaPreguntada;
+    // Lo decide el código, no el modelo: «ajustó» si cambia el valor o la factura pasa a otro mes.
+    // Moverla unos días dentro del mismo mes es confirmar, con la fecha nueva.
+    const otroMes = !!(f && c.fechaPreguntada && mesDe(f) !== mesDe(c.fechaPreguntada));
+    return { estado: valor !== c.valorPreguntado || otroMes ? ("ajustada" as const) : ("confirmada" as const), valor, fecha: f, motivo: null };
   }
   return { estado: "por_revisar" as const, valor: null, fecha: null, motivo: l.tipo === "pregunta" ? "hizo una pregunta" : "no respondió lo preguntado" };
 }

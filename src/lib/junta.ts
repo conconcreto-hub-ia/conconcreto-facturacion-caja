@@ -4,7 +4,7 @@
 // Semáforo:
 //   rojo  · un hito vencido sin cumplir · una diferencia del mes cerrado por justificar · no factura este mes
 //   oro   · no ha confirmado esta semana · ajustó a la baja más del 10 % · el avance físico le lleva más de 8 puntos
-//           a lo facturado (factura atrasada respecto a la obra)
+//           a lo facturado (factura atrasada respecto a la obra) · tiene cartera vencida
 //   verde · nada de lo anterior
 import { db } from "./db";
 import { leerDatos } from "./datos";
@@ -24,6 +24,7 @@ export async function estadoDeProyectos(d?: Datos) {
   const cartera = recaudosEsperados(d, "facturado");
   const trimestre = d.proyecciones.map((p) => p.mes).filter((m) => m.slice(0, 4) === mesHoy.slice(0, 4) && Math.floor((Number(m.slice(5, 7)) - 1) / 3) === Math.floor((Number(mesHoy.slice(5, 7)) - 1) / 3));
 
+  const orden: Record<Tono, number> = { rojo: 0, oro: 1, verde: 2, neutro: 3, noche: 3 };
   return proyectos.map((p) => {
     const facturas = d!.facturas.filter((f) => f.proyectoId === p.id && !f.anulada);
     const facturado = Number(p.facturadoAnterior) + suma(facturas, (f) => f.base);
@@ -45,6 +46,7 @@ export async function estadoDeProyectos(d?: Datos) {
     if (!conf || ["borrador", "enviada", "recordada", "por_revisar"].includes(conf.estado)) razones.push({ tono: "oro", texto: "No ha confirmado la facturación de esta semana" });
     if (infMes && proyMes && infMes.total < proyMes * 0.9 && conf?.estado !== "no_factura") razones.push({ tono: "oro", texto: "Ajustó a la baja la facturación del mes" });
     if (p.avance - pctFacturado > 8) razones.push({ tono: "oro", texto: "La facturación va atrasada respecto al avance de obra" });
+    if (car.some((r) => r.vencida)) razones.push({ tono: "oro", texto: "Tiene cartera vencida" });
     const tono: Tono = razones.some((r) => r.tono === "rojo") ? "rojo" : razones.length ? "oro" : "verde";
 
     return {
@@ -57,5 +59,5 @@ export async function estadoDeProyectos(d?: Datos) {
       hitos: p.hitos.filter((h) => !h.cumplido).slice(0, 3).map((h) => ({ nombre: h.nombre, fecha: iso(h.fecha), financiero: h.financiero, vencido: iso(h.fecha) < d!.hoy })),
       tono, razones,
     };
-  });
+  }).sort((a, b) => orden[a.tono] - orden[b.tono]);
 }

@@ -7,7 +7,7 @@ import { accionMarcarPagado } from "@/app/acciones";
 import { db } from "@/lib/db";
 import { leerDatos } from "@/lib/datos";
 import { aCop, disponibleEn, flujoSemanal, saldosAlCorte, type Escenario } from "@/lib/finanzas";
-import { cop, copCorto, monto } from "@/lib/formato";
+import { cop, copCorto, monto, montoCorto } from "@/lib/formato";
 import { diaCorto, diaLargo, hoyBogota, iso } from "@/lib/fechas";
 import { CATEGORIA_PAGO, ESCENARIO } from "@/lib/etiquetas";
 import { FormPago, FormSaldos } from "./formularios";
@@ -142,7 +142,7 @@ export default async function Caja({ searchParams }: { searchParams: Promise<{ e
                       <td className="px-5 py-2.5 whitespace-nowrap">{diaCorto(iso(p.fecha))}</td>
                       <td className="px-3 py-2.5">{p.concepto}<div className="text-[12.5px] text-tinta-3">{p.beneficiario}{p.banco ? ` · ${p.banco.nombre}` : ""}</div></td>
                       <td className="px-3 py-2.5"><Insignia>{CATEGORIA_PAGO[p.categoria] ?? p.categoria}</Insignia></td>
-                      <td className="num px-3 py-2.5 text-right">{monto(Number(p.valor), p.moneda)}{p.moneda === "USD" && <div className="text-[12px] font-normal text-tinta-3">{copCorto(aCop(Number(p.valor), "USD", d.trm))}</div>}</td>
+                      <td className="num whitespace-nowrap px-3 py-2.5 text-right">{montoCorto(Number(p.valor), p.moneda)}{p.moneda === "USD" && <div className="text-[12px] font-normal text-tinta-3">{copCorto(aCop(Number(p.valor), "USD", d.trm))}</div>}</td>
                       <td className="px-5 py-2.5">{editar && <BotonAccion chico variante="fantasma" accion={accionMarcarPagado.bind(null, p.id)} confirmar="¿Ya salió?">Hecho</BotonAccion>}</td>
                     </tr>
                   ))}

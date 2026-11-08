@@ -9,7 +9,7 @@ import { puede } from "@/lib/auth/permisos";
 import { db } from "@/lib/db";
 import { leerDatos } from "@/lib/datos";
 import { disponibleEn, diferenciasMes, flujoSemanal, saldosAlCorte } from "@/lib/finanzas";
-import { cop } from "@/lib/formato";
+import { cop, copCorto } from "@/lib/formato";
 import { dia, diaLargo, mesDe, nombreMes, semanaDeRonda, sumarMeses } from "@/lib/fechas";
 import { RESPONDIDAS } from "@/lib/etiquetas";
 
@@ -49,10 +49,10 @@ export default async function Inicio() {
         <Encabezado et="Facturación y caja" titulo={<>Lo proyectado, lo informado y lo real, <span className="dorado">junto a la caja</span></>} bajada="Cada semana el agente confirma con los proyectos lo que van a facturar, lo cruza con SAP y con los bancos, y redacta las justificaciones que una persona aprueba." />
 
         <Tarjeta className="grid gap-8 p-6 sm:grid-cols-2 lg:grid-cols-4">
-          <Cifra valor={cop(saldo.totalCop)} rotulo="Disponible en bancos" nota={`al ${diaLargo(saldo.corte)}`} />
+          <Cifra valor={copCorto(saldo.totalCop)} rotulo="Disponible en bancos" nota={`al ${diaLargo(saldo.corte)}`} />
           <Cifra valor={`${respondieron} de ${activos}`} rotulo="Proyectos que ya confirmaron" nota={`semana del ${diaLargo(semana)}${ajustes ? ` · ${ajustes} con cambios` : ""}`} />
           <Cifra valor={justif.length} rotulo="Justificaciones por aprobar" nota={porJustificar.length ? `${porJustificar.length} diferencia${porJustificar.length === 1 ? "" : "s"} en ${nombreMes(mesCerrado)}` : "sin diferencias que pasen el umbral"} />
-          <Cifra valor={cop(dic15.disponible)} rotulo="Disponible el 15 de diciembre" nota="si facturan lo que confirmaron" />
+          <Cifra valor={copCorto(dic15.disponible)} rotulo="Disponible el 15 de diciembre" nota="si facturan lo que confirmaron" />
         </Tarjeta>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">

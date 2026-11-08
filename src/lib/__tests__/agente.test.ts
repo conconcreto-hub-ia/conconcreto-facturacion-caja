@@ -25,7 +25,8 @@ describe("qué se registra con la respuesta del residente", () => {
   const l = (x: Partial<Parameters<typeof decidir>[0]>) => ({ tipo: "confirma" as const, valor_texto: null, fecha_radicacion: null, explicacion: "", pide_algo_al_sistema: false, ...x });
   it("confirma: el valor preguntado", () => expect(decidir(l({}), c, hoy)).toMatchObject({ estado: "confirmada", valor: 1_650_000_000, fecha: "2026-11-12" }));
   it("«confirmo» con otro valor es un ajuste", () => expect(decidir(l({ valor_texto: "$1.200 millones" }), c, hoy)).toMatchObject({ estado: "ajustada", valor: 1_200_000_000 }));
-  it("ajusta solo la fecha", () => expect(decidir(l({ tipo: "ajusta", fecha_radicacion: "2026-12-05" }), c, hoy)).toMatchObject({ estado: "ajustada", valor: 1_650_000_000, fecha: "2026-12-05" }));
+  it("mover la fecha dentro del mismo mes sigue siendo confirmar (aunque el modelo diga «ajusta»)", () => expect(decidir(l({ tipo: "ajusta", fecha_radicacion: "2026-11-24" }), c, hoy)).toMatchObject({ estado: "confirmada", valor: 1_650_000_000, fecha: "2026-11-24" }));
+  it("ajusta solo la fecha, a otro mes", () => expect(decidir(l({ tipo: "ajusta", fecha_radicacion: "2026-12-05" }), c, hoy)).toMatchObject({ estado: "ajustada", valor: 1_650_000_000, fecha: "2026-12-05" }));
   it("no factura: cero", () => expect(decidir(l({ tipo: "no_factura", explicacion: "suspendido" }), c, hoy)).toMatchObject({ estado: "no_factura", valor: 0 }));
   it("una pregunta queda por revisar", () => expect(decidir(l({ tipo: "pregunta" }), c, hoy).estado).toBe("por_revisar"));
   it("un valor en dólares para un proyecto en pesos no se registra", () => expect(decidir(l({ tipo: "ajusta", valor_texto: "USD 300.000" }), c, hoy).estado).toBe("por_revisar"));

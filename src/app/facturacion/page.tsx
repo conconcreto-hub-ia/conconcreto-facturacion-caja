@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { leerDatos } from "@/lib/datos";
 import { aCop, diferenciasMes, recaudosEsperados, suma, UMBRAL } from "@/lib/finanzas";
 import { cop, monto, montoCorto, pct } from "@/lib/formato";
-import { dia, diaLargo, mesDe, nombreMesAnio } from "@/lib/fechas";
+import { dia, diaLargo, MesAnio, mesDe, nombreMesAnio } from "@/lib/fechas";
 import { ESTADO_JUSTIFICACION } from "@/lib/etiquetas";
 import { TarjetaJustificacion } from "./justificacion";
 
@@ -47,10 +47,10 @@ export default async function Facturacion({ searchParams }: { searchParams: Prom
         />
 
         <div className="flex flex-wrap gap-2 text-[13px]">
-          {meses.map((m) => <Link key={m} href={`/facturacion?mes=${m.slice(0, 7)}`} className={`rounded-full border px-3 py-1 capitalize ${m === mes ? "border-verde bg-verde-suave font-semibold text-verde-profundo" : "border-linea bg-papel text-tinta-2 hover:border-[#cfd8d1]"}`}>{nombreMesAnio(m)}{m < mesHoy ? " · cerrado" : m === mesHoy ? " · en curso" : ""}</Link>)}
+          {meses.map((m) => <Link key={m} href={`/facturacion?mes=${m.slice(0, 7)}`} className={`rounded-full border px-3 py-1 ${m === mes ? "border-verde bg-verde-suave font-semibold text-verde-profundo" : "border-linea bg-papel text-tinta-2 hover:border-[#cfd8d1]"}`}>{MesAnio(m)}{m < mesHoy ? " · cerrado" : m === mesHoy ? " · en curso" : ""}</Link>)}
         </div>
 
-        <Tarjeta className="flex flex-wrap gap-10 p-6">
+        <Tarjeta className="grid gap-8 p-6 sm:grid-cols-2 lg:grid-cols-4">
           <Cifra valor={cop(total((x) => x.proyectado))} rotulo="Proyectado" nota="en pesos, con la TRM del día para Bayside" />
           <Cifra valor={cop(total((x) => x.informado))} rotulo="Informado por los proyectos" nota={`${filas.filter((x) => x.informado !== null).length} de ${filas.length} proyectos han informado`} />
           <Cifra valor={cop(total((x) => x.real))} rotulo={cerrado ? "Facturado en SAP" : "Facturado hasta hoy"} />

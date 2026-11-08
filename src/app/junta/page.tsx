@@ -6,7 +6,7 @@ import { leerDatos } from "@/lib/datos";
 import { estadoDeProyectos } from "@/lib/junta";
 import { saldosAlCorte, suma } from "@/lib/finanzas";
 import { cop, copCorto, monto, montoCorto, pct } from "@/lib/formato";
-import { diaCorto, diaLargo, nombreMesAnio, mesDe, sumarMeses } from "@/lib/fechas";
+import { diaCorto, diaLargo, MesAnio, mesDe, sumarMeses } from "@/lib/fechas";
 import { LINEA } from "@/lib/etiquetas";
 import { Imprimir } from "./imprimir";
 
@@ -88,7 +88,7 @@ export default async function Junta({ searchParams }: { searchParams: Promise<{ 
                     <div className="flex justify-between gap-2"><dt className="text-tinta-3">informado</dt><dd className="num m-0">{p.informadoMes === null ? "sin confirmar" : montoCorto(p.informadoMes, p.moneda)}</dd></div>
                     <div className="flex justify-between gap-2"><dt className="text-tinta-3">Cartera neta</dt><dd className="num m-0">{montoCorto(p.cartera, p.moneda)}</dd></div>
                     <div className="flex justify-between gap-2"><dt className="text-tinta-3">vencida</dt><dd className={`num m-0 ${p.carteraVencida ? "text-rojo" : ""}`}>{montoCorto(p.carteraVencida, p.moneda)}</dd></div>
-                    <div className="col-span-2 flex justify-between gap-2"><dt className="text-tinta-3">{nombreMesAnio(mesCerrado)}: real − informado</dt><dd className="num m-0">{p.difMesCerrado === null ? "—" : monto(p.difMesCerrado, p.moneda)}{p.justificacion ? ` · justificación ${p.justificacion === "aprobada" ? "aprobada" : "por aprobar"}` : ""}</dd></div>
+                    <div className="col-span-2 flex justify-between gap-2"><dt className="text-tinta-3">{MesAnio(mesCerrado)}: real − informado</dt><dd className="num m-0">{p.difMesCerrado === null ? "—" : monto(p.difMesCerrado, p.moneda)}{p.justificacion ? ` · justificación ${p.justificacion === "aprobada" ? "aprobada" : "por aprobar"}` : ""}</dd></div>
                   </dl>
                 )}
                 {p.hitos.length > 0 && (
@@ -103,7 +103,7 @@ export default async function Junta({ searchParams }: { searchParams: Promise<{ 
         </section>
 
         <p className="text-[12px] text-tinta-3 print:break-inside-avoid">
-          Cómo se pone el semáforo: <b>alerta</b> si hay un hito vencido sin cumplir, una diferencia del mes cerrado sin justificación aprobada o el proyecto informó que no factura este mes; <b>a vigilar</b> si no ha confirmado la facturación de esta semana, si la ajustó a la baja más del 10 % o si el avance de obra le lleva más de 8 puntos a lo facturado. Datos de demostración. Total facturado en pesos: {cop(total.facturado)}.
+          Cómo se pone el semáforo: <b>alerta</b> si hay un hito vencido sin cumplir, una diferencia del mes cerrado sin justificación aprobada o el proyecto informó que no factura este mes; <b>a vigilar</b> si no ha confirmado la facturación de esta semana, si la ajustó a la baja más del 10 %, si el avance de obra le lleva más de 8 puntos a lo facturado o si tiene cartera vencida. Datos de demostración. Total facturado en pesos: {cop(total.facturado)}.
         </p>
       </Contenedor>
     </>
