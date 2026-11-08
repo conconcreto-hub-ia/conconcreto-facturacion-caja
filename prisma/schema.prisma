@@ -1,0 +1,375 @@
+// Facturación y caja que se conversa · Conconcreto x irrelevant
+//
+// Tres capas de la facturación, por proyecto y mes:
+//   proyectado  · la proyección trimestral (el Excel que alimenta el flujo de caja)
+//   informado   · lo que el proyecto confirma cada semana, por correo con el agente
+//   real        · lo facturado en SAP (el exporte)
+// Y la caja: saldos por banco, pagos programados y los recaudos que salen de la facturación.
+//
+// Las cifras las calcula el código (src/lib/finanzas.ts). El modelo lee correos y redacta.
+// Cada paso del agente o de una persona queda en `Evento`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Linea {
+  infraestructura
+  vivienda
+  edificacion
+  internacional
+}
+
+enum Moneda {
+  COP
+  USD
+}
+
+enum TipoCliente {
+  publico
+  privado
+}
+
+enum EstadoConfirmacion {
+  borrador    // redactada, no salió (el correo del residente no está habilitado en modo prueba)
+  enviada
+  recordada   // se le mandó al menos un recordatorio en el mismo hilo
+  confirmada  // confirmó el valor proyectado
+  ajustada    // cambió el valor o la fecha
+  no_factura  // explicó que este mes no factura
+  por_revisar // contestó algo que el agente no pudo registrar solo: lo mira facturación
+}
+
+enum EstadoJustificacion {
+  borrador // la redactó el agente, falta que facturación la apruebe
+  aprobada
+  devuelta // facturación pidió cambios
+}
+
+enum Actor {
+  agente
+  persona
+  sistema
+}
+
+/// Un cliente con sus condiciones tributarias. Reemplaza «un Excel por cliente».
+/// Conconcreto es autorretenedor: los clientes no le practican retención en la fuente.
+model Cliente {
+  id              String      @id @default(cuid())
+  codigoSap       String      @unique // «Solicitante» en SAP
+  nombre          String
+  nit             String
+  tipo            TipoCliente
+  ciudad          String
+  moneda          Moneda      @default(COP)
+  ivaPct          Float       // IVA efectivo sobre la base: 0,95 % con AIU (19 % sobre una utilidad del 5 %), 19 % a precio global
+  esquemaIva      String      // cómo se factura el IVA, en palabras
+  reteIvaPct      Float       // % del IVA que retiene (15 % si es gran contribuyente)
+  reteIcaPorMil   Float       // ReteICA, por mil sobre la base
+  contribucionPct Float       // contribución de obra pública (Ley 1106 de 2006): 5 % en contratos de obra con entidades públicas
+  garantiaPct     Float       // retención de garantía sobre la base, se devuelve al final
+  anticipoPct     Float       // amortización del anticipo en cada factura
+  anticipoSaldo   BigInt      @default(0) // lo que falta por amortizar, en la moneda del cliente
+  diasPago        Int
+  notas           String?     @db.Text
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  proyectos Proyecto[]
+  facturas  Factura[]
+}
+
+model Proyecto {
+  id                String    @id @default(cuid())
+  codigo            String    @unique // elemento PEP en SAP
+  nombre            String
+  linea             Linea
+  ciudad            String
+  pais              String    @default("Colombia")
+  moneda            Moneda    @default(COP)
+  clienteId         String
+  cliente           Cliente   @relation(fields: [clienteId], references: [id])
+  director          String
+  residenteNombre   String
+  residenteCorreo   String    // a quien le escribe el agente cada semana
+  valorContrato     BigInt
+  facturadoAnterior BigInt    @default(0) // lo facturado antes del periodo del exporte de SAP
+  avance            Float     // avance físico, 0-100
+  inicio            DateTime  @db.Date
+  finPrevisto       DateTime  @db.Date
+  diaRadicacion     Int       // el día del mes en que suele radicar la factura
+  activo            Boolean   @default(true)
+  notas             String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  hitos          Hito[]
+  proyecciones   Proyeccion[]
+  confirmaciones Confirmacion[]
+  facturas       Factura[]
+  justificaciones Justificacion[]
+  eventos        Evento[]
+  correos        Correo[]
+}
+
+model Hito {
+  id         String   @id @default(cuid())
+  proyectoId String
+  proyecto   Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  nombre     String
+  fecha      DateTime @db.Date
+  cumplido   Boolean  @default(false)
+  financiero Boolean  @default(false) // un hito que dispara facturación (acta, entrega, pago)
+}
+
+/// La proyección trimestral, por proyecto y mes, antes de IVA y en la moneda del proyecto.
+model Proyeccion {
+  id              String    @id @default(cuid())
+  proyectoId      String
+  proyecto        Proyecto  @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  mes             DateTime  @db.Date // primer día del mes
+  trimestre       String    // 2026-T4
+  valor           BigInt
+  fechaRadicacion DateTime? @db.Date
+  cargaId         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([proyectoId, mes])
+}
+
+/// Lo informado: la confirmación semanal de un proyecto para un mes.
+model Confirmacion {
+  id               String             @id @default(cuid())
+  proyectoId       String
+  proyecto         Proyecto           @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  mes              DateTime           @db.Date
+  semana           DateTime           @db.Date // el lunes de la semana de la ronda
+  estado           EstadoConfirmacion @default(borrador)
+  origen           String             @default("agente") // agente | carga inicial
+  facturadoAntes   BigInt             @default(0) // lo ya facturado en el mes cuando se preguntó
+  valorPreguntado  BigInt             // lo pendiente por facturar según la proyección
+  fechaPreguntada  DateTime?          @db.Date
+  valorInformado   BigInt?            // lo que el proyecto dice que falta por facturar en el mes
+  fechaInformada   DateTime?          @db.Date
+  explicacion      String?            @db.Text
+  hiloId           String?
+  mensajeId        String?
+  enviadaEn        DateTime?
+  respondidaEn     DateTime?
+  recordatorios    Int                @default(0)
+  ultimaActividad  DateTime?
+  createdAt        DateTime           @default(now())
+
+  @@unique([proyectoId, mes, semana])
+  @@index([semana])
+  @@index([hiloId])
+}
+
+/// Lo real: una factura del exporte de SAP. Las retenciones y el neto los calcula el código con las
+/// condiciones del cliente (src/lib/finanzas.ts), no vienen del exporte.
+model Factura {
+  id               String    @id @default(cuid())
+  numero           String    @unique // documento de facturación en SAP
+  proyectoId       String
+  proyecto         Proyecto  @relation(fields: [proyectoId], references: [id])
+  clienteId        String
+  cliente          Cliente   @relation(fields: [clienteId], references: [id])
+  fecha            DateTime  @db.Date
+  mes              DateTime  @db.Date
+  moneda           Moneda
+  base             BigInt    // valor neto antes de IVA
+  iva              BigInt
+  texto            String?   @db.Text
+  fechaVencimiento DateTime  @db.Date
+  pagada           Boolean   @default(false)
+  fechaPago        DateTime? @db.Date
+  anulada          Boolean   @default(false)
+  cargaId          String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([proyectoId, mes])
+}
+
+/// Cada archivo que se cargó (proyección o exporte de SAP).
+model Carga {
+  id        String   @id @default(cuid())
+  tipo      String   // proyeccion | sap
+  archivo   String
+  filas     Int
+  quien     String
+  detalle   Json?
+  createdAt DateTime @default(now())
+}
+
+/// La justificación ante la interventoría cuando lo real se aparta de lo informado.
+model Justificacion {
+  id          String              @id @default(cuid())
+  proyectoId  String
+  proyecto    Proyecto            @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  mes         DateTime            @db.Date
+  proyectado  BigInt
+  informado   BigInt
+  real        BigInt
+  diferencia  BigInt              // real - informado
+  texto       String              @db.Text
+  datos       Json                // lo que se le pasó al agente para redactarla
+  verificada  Boolean             @default(false) // todas las cifras del texto están en los datos
+  estado      EstadoJustificacion @default(borrador)
+  observacion String?             @db.Text // por qué se devolvió
+  aprobadaPor String?
+  aprobadaEn  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@unique([proyectoId, mes])
+}
+
+/* ── Caja ──────────────────────────────────────────────────────────── */
+
+model Banco {
+  id       String   @id @default(cuid())
+  nombre   String
+  cuenta   String   // los últimos dígitos
+  moneda   Moneda   @default(COP)
+  orden    Int      @default(0)
+
+  saldos SaldoBanco[]
+  pagos  PagoProgramado[]
+}
+
+/// El disponible de cada mañana, por banco.
+model SaldoBanco {
+  id        String   @id @default(cuid())
+  bancoId   String
+  banco     Banco    @relation(fields: [bancoId], references: [id], onDelete: Cascade)
+  fecha     DateTime @db.Date
+  saldo     BigInt
+  quien     String?
+  createdAt DateTime @default(now())
+
+  @@unique([bancoId, fecha])
+}
+
+model PagoProgramado {
+  id           String   @id @default(cuid())
+  fecha        DateTime @db.Date
+  beneficiario String
+  concepto     String
+  categoria    String   // nomina, seguridad_social, proveedores, impuestos, credito
+  valor        BigInt
+  moneda       Moneda   @default(COP)
+  bancoId      String?
+  banco        Banco?   @relation(fields: [bancoId], references: [id], onDelete: SetNull)
+  pagado       Boolean  @default(false)
+  quien        String?
+  createdAt    DateTime @default(now())
+
+  @@index([fecha])
+}
+
+/// TRM diaria (pesos por dólar).
+model Trm {
+  fecha DateTime @id @db.Date
+  valor Float
+}
+
+/* ── Agente ────────────────────────────────────────────────────────── */
+
+/// Todo correo que entra o sale del buzón del agente.
+model Correo {
+  id         String    @id @default(cuid())
+  mensajeId  String    @unique
+  hiloId     String?
+  direccion  String    // entrante | saliente
+  de         String
+  para       String
+  asunto     String
+  resumen    String?   @db.Text
+  procesado  Boolean   @default(false)
+  proyectoId String?
+  proyecto   Proyecto? @relation(fields: [proyectoId], references: [id], onDelete: SetNull)
+  recibidoEn DateTime  @default(now())
+
+  @@index([hiloId])
+}
+
+/// La bitácora.
+model Evento {
+  id         String    @id @default(cuid())
+  proyectoId String?
+  proyecto   Proyecto? @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  actor      Actor
+  tipo       String    // ronda.enviada, confirmacion.registrada, justificacion.redactada…
+  descripcion String
+  datos      Json?
+  createdAt  DateTime  @default(now())
+
+  @@index([proyectoId, createdAt])
+  @@index([createdAt])
+}
+
+/// Cada pregunta que se le hizo a la conversación, con las herramientas que usó.
+model Consulta {
+  id          String   @id @default(cuid())
+  usuarioId   String?
+  quien       String
+  pregunta    String   @db.Text
+  respuesta   String   @db.Text
+  herramientas Json
+  verificada  Boolean  @default(false)
+  sinVerificar String[] // cifras de la respuesta que no salieron de ninguna herramienta
+  ms          Int
+  createdAt   DateTime @default(now())
+
+  @@index([usuarioId, createdAt])
+}
+
+/* ── Acceso ─────────────────────────────────────────────────────────── */
+
+enum Rol {
+  admin       // todo, más usuarios
+  facturacion // confirma con los proyectos, carga datos, aprueba justificaciones
+  tesoreria   // caja, saldos y pagos
+  junta       // solo la vista de junta y la conversación
+  consulta    // ve todo, no cambia nada
+}
+
+model Usuario {
+  id               String    @id @default(cuid())
+  correo           String    @unique
+  nombre           String
+  rol              Rol       @default(consulta)
+  hash             String
+  activo           Boolean   @default(true)
+  debeCambiarClave Boolean   @default(true)
+  ultimoIngreso    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  sesiones Sesion[]
+}
+
+model Sesion {
+  id        String   @id @default(cuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  expiraEn  DateTime
+  createdAt DateTime @default(now())
+
+  @@index([usuarioId])
+}
+
+model IntentoIngreso {
+  id        String   @id @default(cuid())
+  correo    String
+  exito     Boolean
+  createdAt DateTime @default(now())
+
+  @@index([correo, createdAt])
+}
