@@ -72,3 +72,18 @@ export const IconoTendencia = ({ className }: P) => (
 export const IconoDocumento = ({ className }: P) => (
   <svg {...base(className)}><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5Z" /><path d="M14 3v5h5M9 13h6M9 17h6" /></svg>
 );
+export const IconoBanco = ({ className }: P) => (
+  <svg {...base(className)}><path d="M3 10 12 4l9 6" /><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8" /><path d="M3 21h18" /></svg>
+);
+export const IconoConversa = ({ className }: P) => (
+  <svg {...base(className)}><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" /><path d="M8.5 11h7M8.5 14.5h4" /></svg>
+);
+export const IconoCalendario = ({ className }: P) => (
+  <svg {...base(className)}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+);
+export const IconoImprimir = ({ className }: P) => (
+  <svg {...base(className)}><path d="M7 9V3h10v6" /><rect x="3" y="9" width="18" height="8" rx="2" /><path d="M7 14h10v7H7z" /></svg>
+);
+export const IconoSubir = ({ className }: P) => (
+  <svg {...base(className)}><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
+);

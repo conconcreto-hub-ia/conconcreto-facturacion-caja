@@ -114,3 +114,10 @@ h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; marg
 .aja > * { position: relative; z-index: 1; }
 
 :focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+
+/* Impresión (la vista de junta): papel blanco, sin barra, tarjetas enteras */
+@media print {
+  @page { margin: 14mm; }
+  body { background: #fff; font-size: 12px; }
+  .tarjeta-viva::before { display: none; }
+}

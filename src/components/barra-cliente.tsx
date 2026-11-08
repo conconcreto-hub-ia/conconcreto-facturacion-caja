@@ -5,25 +5,29 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Marca, Contenedor } from "./ui";
 import { accionSalir } from "@/app/acceso";
+import type { Permiso } from "@/lib/auth/permisos";
 
-// El menú vive aquí y en ningún otro sitio.
-export const NAV = [
-  { href: "/", etiqueta: "Oportunidades" },
-  { href: "/radar", etiqueta: "Radar SECOP" },
-  { href: "/buzon", etiqueta: "Buzón" },
-  { href: "/proveedores", etiqueta: "Proveedores" },
-  { href: "/criterios", etiqueta: "Criterios" },
-  { href: "/usuarios", etiqueta: "Usuarios", soloAdmin: true },
-] as const;
+// El menú vive aquí y en ningún otro sitio. Cada entrada dice qué permiso hace falta para verla.
+export const NAV: { href: string; etiqueta: string; permiso: Permiso }[] = [
+  { href: "/", etiqueta: "Inicio", permiso: "ver.inicio" },
+  { href: "/confirmaciones", etiqueta: "Confirmaciones", permiso: "ver.facturacion" },
+  { href: "/facturacion", etiqueta: "Facturación", permiso: "ver.facturacion" },
+  { href: "/caja", etiqueta: "Caja", permiso: "ver.caja" },
+  { href: "/conversar", etiqueta: "Conversar", permiso: "conversar" },
+  { href: "/junta", etiqueta: "Junta", permiso: "ver.junta" },
+  { href: "/datos", etiqueta: "Datos", permiso: "ver.facturacion" },
+  { href: "/usuarios", etiqueta: "Usuarios", permiso: "usuarios.administrar" },
+];
 
-export function BarraCliente({ agenteActivo = true, children, usuario }: { agenteActivo?: boolean; children?: ReactNode; usuario: { nombre: string; rol: string; esAdmin: boolean } | null }) {
+export function BarraCliente({ agenteActivo = true, children, usuario, visibles }: { agenteActivo?: boolean; children?: ReactNode; usuario: { nombre: string; rol: string } | null; visibles: string[] }) {
   const ruta = usePathname();
-  const activo = (href: string) => (href === "/" ? ruta === "/" || ruta.startsWith("/oportunidades") : ruta.startsWith(href));
+  const activo = (href: string) => (href === "/" ? ruta === "/" : ruta.startsWith(href) || (href === "/facturacion" && ruta.startsWith("/proyectos")));
+  const inicio = visibles.includes("/") ? "/" : visibles[0] ?? "/";
 
   return (
-    <header className="banda">
+    <header className="banda print:hidden">
       <Contenedor className="flex flex-wrap items-center justify-between gap-4 pt-5">
-        <Link href="/" aria-label="Inicio">
+        <Link href={inicio} aria-label="Inicio">
           <Marca compacta />
         </Link>
         <div className="flex items-center gap-3">
@@ -46,7 +50,7 @@ export function BarraCliente({ agenteActivo = true, children, usuario }: { agent
       </Contenedor>
       <Contenedor>
         <nav className={"mt-5 flex gap-1 overflow-x-auto " + (children ? "border-b border-white/10" : "pb-[3px]")} aria-label="Principal">
-          {NAV.filter((n) => !("soloAdmin" in n) || usuario?.esAdmin).map((n) => (
+          {NAV.filter((n) => visibles.includes(n.href)).map((n) => (
             <Link
               key={n.href}
               href={n.href}
