@@ -10,7 +10,7 @@ export async function Barra({ agenteActivo = true, children }: { agenteActivo?: 
   const u = await usuarioActual();
   const visibles = u ? NAV.filter((n) => puede(u.rol, n.permiso)).map((n) => n.href) : [];
   return (
-    <BarraCliente agenteActivo={agenteActivo} visibles={visibles} panelUrl={process.env.PANEL_URL ?? null} usuario={u ? { nombre: u.nombre, rol: ROL[u.rol].etiqueta } : null}>
+    <BarraCliente agenteActivo={agenteActivo} visibles={visibles} usuario={u ? { nombre: u.nombre, rol: ROL[u.rol].etiqueta } : null}>
       {children}
     </BarraCliente>
   );
